@@ -1,0 +1,19 @@
+{
+  "name": "hybro",
+  "version": "0.0.1",
+  "description": "hybro",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wowmaking/hybro.git"
+  },
+  "keywords": [
+    "react-native"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wowmaking/hybro/issues"
+  },
+  "homepage": "https://github.com/wowmaking/hybro#readme"
+}
