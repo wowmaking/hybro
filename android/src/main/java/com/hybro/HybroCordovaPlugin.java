@@ -28,20 +28,34 @@ public class HybroCordovaPlugin extends CordovaPlugin {
 
   @Override
   public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
-    switch (action){
+    String eventName = "";
+    
+    switch (action) {
       case "invoke":
-        WritableMap event = Arguments.createMap();
-        event.putArray("args", Converter.convertJsonToArray(args));
-        event.putString("callbackId", callbackContext.getCallbackId());
-
-        context
-                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                .emit("cordova-invoke", event);
-
-        HybroViewManager.table.put(callbackContext.getCallbackId(), callbackContext);
-
-        return true;
+        eventName = "cordova-invoke";
+        break;
+      case "addListener":
+        eventName = "cordova-add-listener";
+        break;
+      case "removeListener":
+        eventName = "cordova-remove-listener";
+        break;
     }
+
+    if (!eventName.isEmpty()) {
+      WritableMap event = Arguments.createMap();
+      event.putArray("args", Converter.convertJsonToArray(args));
+      event.putString("callbackId", callbackContext.getCallbackId());
+
+      context
+                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit(eventName, event);
+
+      HybroViewManager.table.put(callbackContext.getCallbackId(), callbackContext);
+
+      return true;
+    }
+
     return false;
   }
 

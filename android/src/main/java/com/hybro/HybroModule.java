@@ -6,7 +6,10 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
 
 import org.apache.cordova.CallbackContext;
+import org.apache.cordova.PluginResult;
+
 import org.json.JSONObject;
+import java.util.Hashtable;
 
 
 public class HybroModule extends ReactContextBaseJavaModule {
@@ -23,12 +26,23 @@ public class HybroModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void success(String callbackId, ReadableMap response) {
-    CallbackContext callbackContext = HybroViewManager.table.remove(callbackId);
+  public void success(String callbackId, ReadableMap response, boolean keepCallback) {
+    Hashtable<String, CallbackContext> table = HybroViewManager.table;
+    
+    CallbackContext callbackContext = keepCallback 
+      ? table.get(callbackId)
+      : table.remove(callbackId);
+
     if (callbackContext != null) {
       try {
-        JSONObject res = Converter.convertMapToJson(response);
-        callbackContext.success(res);
+        JSONObject resp = Converter.convertMapToJson(response);
+        PluginResult result = new PluginResult(PluginResult.Status.OK, resp);
+
+        if (keepCallback) {
+          result.setKeepCallback(true);
+        }
+
+        callbackContext.sendPluginResult(result);
       }
       catch(Exception ex) {
         callbackContext.error(ex.getMessage());
@@ -43,4 +57,5 @@ public class HybroModule extends ReactContextBaseJavaModule {
       callbackContext.error(error);
     }
   }
+  
 }

@@ -7,4 +7,8 @@
 
 - (void)commandReceived:(NSString*)callbackId arguments:(NSArray *)arguments;
 
+- (void)eventListenerRecived:(NSString*)callbackId arguments:(NSArray *)arguments;
+
+- (void)removeEventListenerCommandReceived:(NSString*)callbackId arguments:(NSArray *)arguments;
+
 @end

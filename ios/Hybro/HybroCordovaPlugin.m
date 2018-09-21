@@ -22,10 +22,25 @@ static HybroCordovaPlugin *singleton = nil;
   [[HybroModule instance] commandReceived:command.callbackId arguments:command.arguments];
 }
 
-- (void)success:(NSString*)callbackId response:(NSDictionary *)response
+- (void)addListener:(CDVInvokedUrlCommand*)command
+{
+  [[HybroModule instance] eventListenerRecived:command.callbackId arguments:command.arguments];
+}
+
+- (void)removeListener:(CDVInvokedUrlCommand*)command
+{
+  [[HybroModule instance] removeEventListenerCommandReceived:command.callbackId arguments:command.arguments];
+}
+
+- (void)success:(NSString*)callbackId response:(NSDictionary *)response keepCallback:(BOOL)keepCallback
 {
   CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:response];
-  
+
+  if (keepCallback == YES)
+  {
+    [pluginResult setKeepCallbackAsBool:YES];
+  }
+
   [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
 }
 
