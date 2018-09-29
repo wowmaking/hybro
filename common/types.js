@@ -1,6 +1,6 @@
 export const INVOKE = 'invoke';
-export const ADD_LISTENER = 'addListener';
-export const REMOVE_LISTENER = 'removeListener';
+export const ADD_EVENT_LISTENER = 'addEventListener';
+export const REMOVE_EVENT_LISTENER = 'removeEventListener';
 
 export const SUCCESS = 'success';
 export const ERROR = 'error';

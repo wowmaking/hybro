@@ -23,26 +23,26 @@ export const invoke = function (pckg, mdl, method, params) {
     });
 };
 
-export const addListener = function (pckg, mdl, evnt, cb) {
+export const addEventListener = function (pckg, mdl, evnt, cb) {
     return new Promise((resolve, reject) => {
         let id = Guid.raw();
         promises[id] = { resolve, reject, };
         callbacks[id] = cb;
         RNMsgChannel.sendJSON({
-            type: TYPES.ADD_LISTENER,
+            type: TYPES.ADD_EVENT_LISTENER,
             id,
             args: stringify([pckg, mdl, evnt]),
         });
     });
 }
 
-export const removeListener = function (pckg, mdl, evnt, cbId) {
+export const removeEventListener = function (pckg, mdl, evnt, cbId) {
     return new Promise((resolve, reject) => {
         let id = Guid.raw();
         promises[id] = { resolve, reject, };
         delete callbacks[cbId];
         RNMsgChannel.sendJSON({
-            type: TYPES.REMOVE_LISTENER,
+            type: TYPES.REMOVE_EVENT_LISTENER,
             id,
             args: stringify([pckg, mdl, evnt, cbId]),
         });

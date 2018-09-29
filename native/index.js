@@ -33,10 +33,10 @@ export class HybroView extends React.Component {
             case TYPES.INVOKE:
                 this.onInvoke(command);
                 break;
-            case TYPES.ADD_LISTENER:
+            case TYPES.ADD_EVENT_LISTENER:
                 this.onAddListener(command);
                 break;
-            case TYPES.REMOVE_LISTENER:
+            case TYPES.REMOVE_EVENT_LISTENER:
                 this.onRemoveListener(command);
                 break;
         }
@@ -69,7 +69,7 @@ export class HybroView extends React.Component {
                 this.sendResult(command, TYPES.EVENT, result);
             };
 
-            let result = this.props.packages[pckg][mdl].addListener(eventName, handler);
+            let result = this.props.packages[pckg][mdl].addEventListener(eventName, handler);
 
             this.webListeners[`${pckg}_${mdl}_${eventName}_${command.id}`] = handler;
 
@@ -86,7 +86,7 @@ export class HybroView extends React.Component {
 
             let handler = this.webListeners[`${pckg}_${mdl}_${eventName}_${command.callbackId}`];
 
-            let result = this.props.packages[pckg][mdl].removeListener(eventName, handler);
+            let result = this.props.packages[pckg][mdl].removeEventListener(eventName, handler);
 
             this.sendResult(command, TYPES.SUCCESS, result);
         }
