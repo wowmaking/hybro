@@ -19,11 +19,11 @@ export class HybroView extends React.Component {
 
 
     componentDidMount() {
-        this.webview.messagesChannel.on('json', this.onWebMessage);
+        this.webview.messagesChannel.addListener('json', this.onWebMessage);
     }
 
     componentWillUnmount() {
-        this.webview.messagesChannel.off('json', this.onWebMessage);
+        this.webview.messagesChannel.removeListener('json', this.onWebMessage);
     }
 
     onWebMessage = (command) => {
