@@ -19,11 +19,21 @@ export class HybroView extends React.Component {
 
 
     componentDidMount() {
-        this.webview.messagesChannel.addListener('json', this.onWebMessage);
+        if (this.webview && this.webview.messagesChannel) {
+            this.webview.messagesChannel.addListener('json', this.onWebMessage);
+        }
+        else {
+            console.warn('Hybro: no webview');
+        }
     }
 
     componentWillUnmount() {
-        this.webview.messagesChannel.removeListener('json', this.onWebMessage);
+        if (this.webview && this.webview.messagesChannel) {
+            this.webview.messagesChannel.removeListener('json', this.onWebMessage);
+        }
+        else {
+            console.warn('Hybro: no webview');
+        }
     }
 
     onWebMessage = (command) => {
@@ -107,24 +117,29 @@ export class HybroView extends React.Component {
     }
 
     sendResult = (command, type, result) => {
-        result = stringify(result);
+        if (this.webview && this.webview.messagesChannel) {
+            result = stringify(result);
 
-        let id = Date.now().toString(),
-            index = 0,
-            size = 100000,
-            parts = Math.ceil(result.length / size);
+            let id = Date.now().toString(),
+                index = 0,
+                size = 100000,
+                parts = Math.ceil(result.length / size);
 
-        while (result) {
-            this.webview.sendJSON({
-                type,
-                id,
-                commandId: command.id,
-                result: result.substr(0, size),
-                parts,
-                index,
-            });
-            result = result.substr(size);
-            ++index;
+            while (result) {
+                this.webview.sendJSON({
+                    type,
+                    id,
+                    commandId: command.id,
+                    result: result.substr(0, size),
+                    parts,
+                    index,
+                });
+                result = result.substr(size);
+                ++index;
+            }
+        }
+        else {
+            console.warn('Hybro: no webview');
         }
     }
 
