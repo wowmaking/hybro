@@ -2,6 +2,10 @@
   "name": "hybro",
   "version": "0.1.0",
   "description": "hybro",
+  "scripts": {
+    "build": "webpack"
+  },
+  "main": "/lib/index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wowmaking/hybro.git"
@@ -18,5 +22,13 @@
   "dependencies": {
     "guid": "0.0.12",
     "react-native-webview-messaging": "^1.2.3"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.1.2",
+    "@babel/core": "^7.1.2",
+    "@babel/preset-env": "^7.1.0",
+    "babel-loader": "^8.0.4",
+    "webpack": "^4.20.2",
+    "webpack-cli": "^3.1.2"
   }
 }
