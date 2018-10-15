@@ -2,6 +2,7 @@ import React from 'react';
 import { WebView as RNWebView, } from 'react-native';
 import { WebView, } from 'react-native-webview-messaging/WebView';
 import PropTypes from 'prop-types';
+import uuid from 'uuid/v1';
 
 
 import { stringify, parse, } from '../common/json';
@@ -120,7 +121,7 @@ export class HybroView extends React.Component {
         if (this.webview && this.webview.messagesChannel) {
             result = stringify(result);
 
-            let id = Date.now().toString(),
+            let id = uuid(),
                 index = 0,
                 size = 100000,
                 parts = Math.ceil(result.length / size);

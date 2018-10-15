@@ -12,7 +12,7 @@ module.exports = {
   },
   externals : {
     'react-native-webview-messaging': 'react-native-webview-messaging',
-    'guid': 'guid',
+    'uuid': 'uuid',
   },
   module: {
     rules: [{

@@ -1,5 +1,5 @@
 import RNMsgChannel from 'react-native-webview-messaging';
-import Guid from 'guid';
+import uuid from 'uuid/v1';
 
 
 import { stringify, parse, } from '../common/json';
@@ -13,7 +13,7 @@ const callbacks = {};
 
 export const invoke = function (pckg, mdl, method, params) {
     return new Promise((resolve, reject) => {
-        let id = Guid.raw();
+        let id = uuid();
         promises[id] = { resolve, reject, };
         RNMsgChannel.sendJSON({
             type: TYPES.INVOKE,
@@ -25,7 +25,7 @@ export const invoke = function (pckg, mdl, method, params) {
 
 export const addEventListener = function (pckg, mdl, evnt, cb) {
     return new Promise((resolve, reject) => {
-        let id = Guid.raw();
+        let id = uuid();
         promises[id] = { resolve, reject, };
         callbacks[id] = cb;
         RNMsgChannel.sendJSON({
@@ -38,7 +38,7 @@ export const addEventListener = function (pckg, mdl, evnt, cb) {
 
 export const removeEventListener = function (pckg, mdl, evnt, cbId) {
     return new Promise((resolve, reject) => {
-        let id = Guid.raw();
+        let id = uuid();
         promises[id] = { resolve, reject, };
         delete callbacks[cbId];
         RNMsgChannel.sendJSON({
