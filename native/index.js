@@ -17,6 +17,7 @@ export class HybroView extends React.Component {
     }
 
     webListeners = {};
+    webEventCommands = [];
 
 
     componentDidMount() {
@@ -24,7 +25,7 @@ export class HybroView extends React.Component {
             this.webview.messagesChannel.addListener('json', this.onWebMessage);
         }
         else {
-            console.warn('Hybro: no webview');
+            console.warn('Hybro: no webview', 'componentDidMount');
         }
     }
 
@@ -33,8 +34,17 @@ export class HybroView extends React.Component {
             this.webview.messagesChannel.removeListener('json', this.onWebMessage);
         }
         else {
-            console.warn('Hybro: no webview');
+            console.warn('Hybro: no webview', 'componentWillUnmount');
         }
+
+        this.removeAllListeners();
+    }
+
+    removeAllListeners() {
+        this.webEventCommands.forEach(command => {
+            command.type = TYPES.REMOVE_EVENT_LISTENER;
+            this.onRemoveListener(command);
+        });
     }
 
     onWebMessage = (command) => {
@@ -83,6 +93,7 @@ export class HybroView extends React.Component {
             let result = this.props.packages[pckg][mdl].addEventListener(eventName, handler);
 
             this.webListeners[`${pckg}_${mdl}_${eventName}_${command.id}`] = handler;
+            this.webEventCommands.push(command);
 
             this.sendResult(command, TYPES.SUCCESS, result);
         }
@@ -95,7 +106,11 @@ export class HybroView extends React.Component {
         try {
             let [pckg, mdl, eventName] = command.args;
 
-            let handler = this.webListeners[`${pckg}_${mdl}_${eventName}_${command.callbackId}`];
+            let handler = this.webListeners[`${pckg}_${mdl}_${eventName}_${command.id}`];
+
+            this.webEventCommands = this.webEventCommands.filter(({ args: [pckg2, mdl2, eventName2] }) =>
+                pckg != pckg2 || mdl != mdl2 || eventName != eventName2
+            );
 
             let result = this.props.packages[pckg][mdl].removeEventListener(eventName, handler);
 
@@ -140,7 +155,7 @@ export class HybroView extends React.Component {
             }
         }
         else {
-            console.warn('Hybro: no webview');
+            console.warn('Hybro: no webview', command, type, result);
         }
     }
 
