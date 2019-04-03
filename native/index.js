@@ -35,6 +35,12 @@ export class HybroView extends React.Component {
         else {
             console.warn('Hybro: no webview');
         }
+
+        for (let h in this.webListeners) {
+            let handler = this.webListeners[h];
+            this.props.packages[handler.pckg][handler.mdl].removeEventListener(handler.eventName, handler);
+            delete this.webListeners[h];
+        }
     }
 
     onWebMessage = (command) => {
@@ -79,6 +85,10 @@ export class HybroView extends React.Component {
             let handler = (result) => {
                 this.sendResult(command, TYPES.EVENT, result);
             };
+
+            handler.pckg = pckg;
+            handler.mdl = mdl;
+            handler.eventName = eventName;
 
             let result = this.props.packages[pckg][mdl].addEventListener(eventName, handler);
 
