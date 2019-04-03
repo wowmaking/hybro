@@ -82,7 +82,7 @@ export class HybroView extends React.Component {
 
             let result = this.props.packages[pckg][mdl].addEventListener(eventName, handler);
 
-            this.webListeners[`${pckg}_${mdl}_${eventName}_${command.id}`] = handler;
+            this.webListeners[getListenerHash(pckg, mdl, eventName, command.id)] = handler;
 
             this.sendResult(command, TYPES.SUCCESS, result);
         }
@@ -93,13 +93,17 @@ export class HybroView extends React.Component {
 
     onRemoveListener = (command) => {
         try {
-            let [pckg, mdl, eventName] = command.args;
+            let [pckg, mdl, eventName, cbId] = command.args;
 
-            let handler = this.webListeners[`${pckg}_${mdl}_${eventName}_${command.callbackId}`];
+            let h = getListenerHash(pckg, mdl, eventName, cbId);
+
+            let handler = this.webListeners[h];
 
             let result = this.props.packages[pckg][mdl].removeEventListener(eventName, handler);
 
             this.sendResult(command, TYPES.SUCCESS, result);
+
+            delete this.webListeners[h];
         }
         catch (error) {
             this.sendResult(command, TYPES.ERROR, { message: error && error.message || '', });
@@ -148,4 +152,9 @@ export class HybroView extends React.Component {
         this.webview = webview;
     }
 
+}
+
+
+function getListenerHash(pckg, mdl, eventName, id) {
+    return `${pckg}_${mdl}_${eventName}_${id}`;
 }
