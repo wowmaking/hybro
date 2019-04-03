@@ -14,7 +14,9 @@ const callbacks = {};
 export const invoke = function (pckg, mdl, method, params) {
     return new Promise((resolve, reject) => {
         let id = uuid();
+
         promises[id] = { resolve, reject, };
+
         RNMsgChannel.sendJSON({
             type: TYPES.INVOKE,
             id,
@@ -26,8 +28,10 @@ export const invoke = function (pckg, mdl, method, params) {
 export const addEventListener = function (pckg, mdl, evnt, cb) {
     return new Promise((resolve, reject) => {
         let id = uuid();
+
         promises[id] = { resolve, reject, };
         callbacks[id] = cb;
+
         RNMsgChannel.sendJSON({
             type: TYPES.ADD_EVENT_LISTENER,
             id,
@@ -36,11 +40,21 @@ export const addEventListener = function (pckg, mdl, evnt, cb) {
     });
 }
 
-export const removeEventListener = function (pckg, mdl, evnt, cbId) {
+export const removeEventListener = function (pckg, mdl, evnt, cb) {
     return new Promise((resolve, reject) => {
-        let id = uuid();
+        let id = uuid(),
+            cbId;
+
+        for (let i in callbacks) {
+            if (callbacks[i] === cb) {
+                cbId = i;
+                break;
+            }
+        }
+
         promises[id] = { resolve, reject, };
         delete callbacks[cbId];
+
         RNMsgChannel.sendJSON({
             type: TYPES.REMOVE_EVENT_LISTENER,
             id,
