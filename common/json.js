@@ -11,7 +11,7 @@ export function stringify(obj) {
 }
 
 export function parse(str) {
-    if (obj === '___UNDEFINED___') {
+    if (str === '___UNDEFINED___') {
         return undefined;
     }
     return JSON.parse(str, function (key, value) {
