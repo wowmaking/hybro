@@ -1,6 +1,6 @@
-import RNMsgChannel from 'react-native-webview-messaging';
 import uuid from 'uuid/v1';
 
+import Channel from './channel';
 
 import { stringify, parse, } from '../common/json';
 import * as TYPES from '../common/types';
@@ -17,7 +17,7 @@ export const invoke = function (pckg, mdl, method, params) {
 
         promises[id] = { resolve, reject, };
 
-        RNMsgChannel.sendJSON({
+        Channel.sendMessage({
             type: TYPES.INVOKE,
             id,
             args: stringify([pckg, mdl, method, params]),
@@ -32,7 +32,7 @@ export const addEventListener = function (pckg, mdl, evnt, cb) {
         promises[id] = { resolve, reject, };
         callbacks[id] = cb;
 
-        RNMsgChannel.sendJSON({
+        Channel.sendMessage({
             type: TYPES.ADD_EVENT_LISTENER,
             id,
             args: stringify([pckg, mdl, evnt]),
@@ -55,7 +55,7 @@ export const removeEventListener = function (pckg, mdl, evnt, cb) {
         promises[id] = { resolve, reject, };
         delete callbacks[cbId];
 
-        RNMsgChannel.sendJSON({
+        Channel.sendMessage({
             type: TYPES.REMOVE_EVENT_LISTENER,
             id,
             args: stringify([pckg, mdl, evnt, cbId]),
@@ -65,7 +65,7 @@ export const removeEventListener = function (pckg, mdl, evnt, cb) {
 
 
 
-RNMsgChannel.on('json', payload => {
+Channel.on('message', payload => {
     if (payload && payload.id) {
         results[payload.id] = results[payload.id] || {
             result: {},
@@ -105,40 +105,3 @@ RNMsgChannel.on('json', payload => {
         }
     }
 });
-
-
-
-// https://github.com/facebook/react-native/issues/11594#issuecomment-298850709
-// TODO
-function awaitPostMessage() {
-    var isReactNativePostMessageReady = !!window.originalPostMessage;
-    var queue = [];
-    var currentPostMessageFn = function store(message) {
-        if (queue.length > 100) queue.shift();
-        queue.push(message);
-    };
-    if (!isReactNativePostMessageReady) {
-        var originalPostMessage = window.postMessage;
-        Object.defineProperty(window, 'postMessage', {
-            configurable: true,
-            enumerable: true,
-            get: function () {
-                return currentPostMessageFn;
-            },
-            set: function (fn) {
-                currentPostMessageFn = fn;
-                isReactNativePostMessageReady = true;
-                setTimeout(sendQueue, 0);
-            }
-        });
-        window.postMessage.toString = function () {
-            return String(originalPostMessage);
-        };
-    }
-
-    function sendQueue() {
-        while (queue.length > 0) window.postMessage(queue.shift());
-    }
-}
-
-awaitPostMessage();

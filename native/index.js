@@ -1,41 +1,18 @@
 import React from 'react';
-import { WebView as RNWebView, } from 'react-native';
-import { WebView, } from 'react-native-webview-messaging/WebView';
-import PropTypes from 'prop-types';
+import { WebView, } from 'react-native-webview';
 import uuid from 'uuid/v1';
 
 
 import { stringify, parse, } from '../common/json';
 import * as TYPES from '../common/types';
+import { TOKEN, } from '../common/token';
 
 
 export class HybroView extends React.Component {
 
-    static propTypes = {
-        ...RNWebView.propTypes,
-        packages: PropTypes.object.isRequired,
-    }
-
     webListeners = {};
 
-
-    componentDidMount() {
-        if (this.webview && this.webview.messagesChannel) {
-            this.webview.messagesChannel.addListener('json', this.onWebMessage);
-        }
-        else {
-            console.warn('Hybro: no webview');
-        }
-    }
-
     componentWillUnmount() {
-        if (this.webview && this.webview.messagesChannel) {
-            this.webview.messagesChannel.removeListener('json', this.onWebMessage);
-        }
-        else {
-            console.warn('Hybro: no webview');
-        }
-
         for (let h in this.webListeners) {
             let handler = this.webListeners[h];
             this.props.packages[handler.pckg][handler.mdl].removeEventListener(handler.eventName, handler);
@@ -43,19 +20,28 @@ export class HybroView extends React.Component {
         }
     }
 
-    onWebMessage = (command) => {
-        command.args = parse(command.args);
+    handleRef = (webview) => {
+        this.webview = webview;
+    }
 
-        switch (command.type) {
-            case TYPES.INVOKE:
-                this.onInvoke(command);
-                break;
-            case TYPES.ADD_EVENT_LISTENER:
-                this.onAddListener(command);
-                break;
-            case TYPES.REMOVE_EVENT_LISTENER:
-                this.onRemoveListener(command);
-                break;
+    handleMessage = (event) => {
+        const { data } = event.nativeEvent;
+
+        if (data.indexOf(TOKEN) === 0) {
+            const command = JSON.parse(data.replace(TOKEN, ''));
+            command.args = parse(command.args);
+
+            switch (command.type) {
+                case TYPES.INVOKE:
+                    this.onInvoke(command);
+                    break;
+                case TYPES.ADD_EVENT_LISTENER:
+                    this.onAddListener(command);
+                    break;
+                case TYPES.REMOVE_EVENT_LISTENER:
+                    this.onRemoveListener(command);
+                    break;
+            }
         }
     }
 
@@ -120,46 +106,47 @@ export class HybroView extends React.Component {
         }
     }
 
-    render() {
-        let { packages, ...others } = this.props;
+    sendResult = (command, type, result) => {
+        result = stringify(result);
 
-        return (
-            <WebView
-                ref={this.handleRef}
-                {...others}
-            />
-        );
+        let id = uuid(),
+            index = 0,
+            size = 100000,
+            parts = Math.ceil(result.length / size);
+
+        while (result) {
+            this.sendMessage({
+                type,
+                id,
+                commandId: command.id,
+                result: result.substr(0, size),
+                parts,
+                index,
+            });
+            result = result.substr(size);
+            ++index;
+        }
     }
 
-    sendResult = (command, type, result) => {
-        if (this.webview && this.webview.messagesChannel) {
-            result = stringify(result);
-
-            let id = uuid(),
-                index = 0,
-                size = 100000,
-                parts = Math.ceil(result.length / size);
-
-            while (result) {
-                this.webview.sendJSON({
-                    type,
-                    id,
-                    commandId: command.id,
-                    result: result.substr(0, size),
-                    parts,
-                    index,
-                });
-                result = result.substr(size);
-                ++index;
-            }
+    sendMessage(json) {
+        if (this.webview) {
+            this.webview.injectJavaScript(`window.HybroChannel.emit('message', ${JSON.stringify(json)});`);
         }
         else {
             console.warn('Hybro: no webview');
         }
     }
 
-    handleRef = (webview) => {
-        this.webview = webview;
+    render() {
+        let { packages, ...others } = this.props;
+
+        return (
+            <WebView
+                {...others}
+                ref={this.handleRef}
+                onMessage={this.handleMessage}
+            />
+        );
     }
 
 }
