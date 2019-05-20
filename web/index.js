@@ -8,7 +8,7 @@ import * as TYPES from '../common/types';
 
 const promises = {};
 const results = {};
-const callbacks = {};
+const listeners = {};
 
 
 export const invoke = function (pckg, mdl, method, params) {
@@ -25,12 +25,12 @@ export const invoke = function (pckg, mdl, method, params) {
     });
 };
 
-export const addEventListener = function (pckg, mdl, evnt, cb) {
+export const addEventListener = function (pckg, mdl, evnt, listener) {
     return new Promise((resolve, reject) => {
         let id = uuid();
 
         promises[id] = { resolve, reject, };
-        callbacks[id] = cb;
+        listeners[id] = listener;
 
         RNMsgChannel.sendJSON({
             type: TYPES.ADD_EVENT_LISTENER,
@@ -40,20 +40,20 @@ export const addEventListener = function (pckg, mdl, evnt, cb) {
     });
 }
 
-export const removeEventListener = function (pckg, mdl, evnt, cb) {
+export const removeEventListener = function (pckg, mdl, evnt, listener) {
     return new Promise((resolve, reject) => {
         let id = uuid(),
             cbId;
 
-        for (let i in callbacks) {
-            if (callbacks[i] === cb) {
+        for (let i in listeners) {
+            if (listeners[i] === listener) {
                 cbId = i;
                 break;
             }
         }
 
         promises[id] = { resolve, reject, };
-        delete callbacks[cbId];
+        delete listeners[cbId];
 
         RNMsgChannel.sendJSON({
             type: TYPES.REMOVE_EVENT_LISTENER,
@@ -84,9 +84,14 @@ RNMsgChannel.on('json', payload => {
             r = parse(r);
 
             if (payload.type == TYPES.EVENT) {
-                let cb = callbacks[payload.commandId];
-                if (cb) {
-                    cb(r);
+                let listener = listeners[payload.commandId];
+                if (listener) {
+                    if (typeof listener === 'function') {
+                        listener(r);
+                    }
+                    else if (typeof listener === 'object' && typeof listener.handleEvent === 'function') {
+                        listener.handleEvent(r);
+                    }
                 }
             }
             else if (promises[payload.commandId]) {
