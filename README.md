@@ -1,4 +1,5 @@
 # hybro
+[![npm](https://img.shields.io/npm/v/hybro.svg)](https://npmjs.com/package/hybro)
 
 ReactNative <-> WebView invoke/events communication
 

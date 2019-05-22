@@ -1,7 +1,7 @@
 {
   "name": "hybro",
   "version": "0.3.2",
-  "description": "hybro",
+  "description": "ReactNative <-> WebView invoke/events communication",
   "scripts": {
     "build": "webpack"
   },
@@ -11,10 +11,10 @@
     "url": "git+https://github.com/wowmaking/hybro.git"
   },
   "keywords": [
-    "react-native"
+    "react-native",
+    "react-native-webview",
+    "webview"
   ],
-  "author": "",
-  "license": "ISC",
   "bugs": {
     "url": "https://github.com/wowmaking/hybro/issues"
   },
