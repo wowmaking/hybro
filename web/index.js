@@ -1,111 +1,73 @@
-import uuid from 'uuid/v1';
-
 import Channel from './channel';
 
+import { Invoker } from '../common/invoker';
 import { stringify, parse, } from '../common/json';
 import * as TYPES from '../common/types';
 
 
-const promises = {};
-const results = {};
-const listeners = {};
+const packages = {};
+const dataChains = {};
 
+function sendRequest(id, type, args) {
+    Channel.sendMessage({
+        id,
+        type,
+        args: stringify(args),
+    });
+}
+
+function sendResult(commandId, type, result) {
+    Channel.sendMessage({
+        commandId,
+        type,
+        result: stringify(result),
+    });
+}
+
+const invoker = new Invoker(packages, sendRequest, sendResult);
 
 export const invoke = function (pckg, mdl, method, params) {
-    return new Promise((resolve, reject) => {
-        let id = uuid();
-
-        promises[id] = { resolve, reject, };
-
-        Channel.sendMessage({
-            type: TYPES.INVOKE,
-            id,
-            args: stringify([pckg, mdl, method, params]),
-        });
-    });
+    return invoker.invoke(pckg, mdl, method, params);
 };
 
 export const addEventListener = function (pckg, mdl, evnt, listener) {
-    return new Promise((resolve, reject) => {
-        let id = uuid();
-
-        promises[id] = { resolve, reject, };
-        listeners[id] = listener;
-
-        Channel.sendMessage({
-            type: TYPES.ADD_EVENT_LISTENER,
-            id,
-            args: stringify([pckg, mdl, evnt]),
-        });
-    });
+    return invoker.addEventListener(pckg, mdl, evnt, listener);
 }
 
 export const removeEventListener = function (pckg, mdl, evnt, listener) {
-    return new Promise((resolve, reject) => {
-        let id = uuid(),
-            cbId;
-
-        for (let i in listeners) {
-            if (listeners[i] === listener) {
-                cbId = i;
-                break;
-            }
-        }
-
-        promises[id] = { resolve, reject, };
-        delete listeners[cbId];
-
-        Channel.sendMessage({
-            type: TYPES.REMOVE_EVENT_LISTENER,
-            id,
-            args: stringify([pckg, mdl, evnt, cbId]),
-        });
-    });
+    return invoker.removeEventListener(pckg, mdl, evnt, listener);
 }
 
+export const registerPackage = function (name, pckg) {
+    packages[name] = pckg;
+};
 
 
 Channel.on('message', payload => {
     if (payload && payload.id) {
-        results[payload.id] = results[payload.id] || {
-            result: {},
+        dataChains[payload.id] = dataChains[payload.id] || {
+            data: {},
             parts: 0,
         };
 
-        results[payload.id].result[payload.index] = payload.result;
-        results[payload.id].parts++;
+        dataChains[payload.id].data[payload.index] = payload.result || payload.args;
+        dataChains[payload.id].parts++;
 
-        if (results[payload.id].parts == payload.parts) {
+        if (dataChains[payload.id].parts == payload.parts) {
             let r = '';
             for (let i = 0; i < payload.parts; ++i) {
-                r += results[payload.id].result[i];
+                r += dataChains[payload.id].data[i];
             }
 
             r = parse(r);
 
-            if (payload.type == TYPES.EVENT) {
-                let listener = listeners[payload.commandId];
-                if (listener) {
-                    if (typeof listener === 'function') {
-                        listener(r);
-                    }
-                    else if (typeof listener === 'object' && typeof listener.handleEvent === 'function') {
-                        listener.handleEvent(r);
-                    }
-                }
-            }
-            else if (promises[payload.commandId]) {
-                if (payload.type == TYPES.ERROR) {
-                    promises[payload.commandId].reject(new Error(r.message));
-                }
-                else {
-                    promises[payload.commandId].resolve(r);
+            const type = payload.type;
 
-                }
-                delete promises[payload.commandId];
+            if (type == TYPES.INVOKE || type == TYPES.ADD_EVENT_LISTENER || type == TYPES.REMOVE_EVENT_LISTENER) {
+                invoker.handleRequest(payload.id, type, r);
             }
             else {
-                console.warn('Promise is already resolved or rejected');
+                invoker.handleResult(payload.commandId, type, r);
             }
         }
     }

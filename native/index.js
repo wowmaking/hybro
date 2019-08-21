@@ -3,6 +3,7 @@ import { WebView, } from 'react-native-webview';
 import uuid from 'uuid/v1';
 
 
+import { Invoker, } from '../common/invoker';
 import { stringify, parse, } from '../common/json';
 import * as TYPES from '../common/types';
 import { TOKEN, } from '../common/token';
@@ -11,13 +12,10 @@ import { TOKEN, } from '../common/token';
 export class HybroView extends React.Component {
 
     webListeners = {};
+    promises = {};
 
     componentWillUnmount() {
-        for (let h in this.webListeners) {
-            let handler = this.webListeners[h];
-            this.props.packages[handler.pckg][handler.mdl].removeEventListener(handler.eventName, handler);
-            delete this.webListeners[h];
-        }
+        this.invoker.destroy();
     }
 
     handleRef = (webview) => {
@@ -28,102 +26,52 @@ export class HybroView extends React.Component {
         const { data } = event.nativeEvent;
 
         if (data.indexOf(TOKEN) === 0) {
-            const command = JSON.parse(data.replace(TOKEN, ''));
-            command.args = parse(command.args);
+            const payload = JSON.parse(data.replace(TOKEN, ''));
 
-            switch (command.type) {
-                case TYPES.INVOKE:
-                    this.onInvoke(command);
-                    break;
-                case TYPES.ADD_EVENT_LISTENER:
-                    this.onAddListener(command);
-                    break;
-                case TYPES.REMOVE_EVENT_LISTENER:
-                    this.onRemoveListener(command);
-                    break;
+            if (payload.args) {
+                payload.args = parse(payload.args);
+            }
+
+            if (payload.result) {
+                payload.result = parse(payload.result);
+            }
+
+            const type = payload.type;
+
+            if (type == TYPES.INVOKE || type == TYPES.ADD_EVENT_LISTENER || type == TYPES.REMOVE_EVENT_LISTENER) {
+                this.invoker.handleRequest(payload.id, payload.type, payload.args);
+            }
+            else {
+                this.invoker.handleResult(payload.commandId, payload.type, payload.result);
             }
         }
     }
 
-    onInvoke = (command) => {
-        try {
-            let [pckg, mdl, method, params] = command.args;
-            params = params || [];
-
-            Promise.all([
-                this.props.packages[pckg][mdl][method](...params),
-            ])
-                .then(([result]) => {
-                    this.sendResult(command, TYPES.SUCCESS, result);
-                }, (error) => {
-                    this.sendResult(command, TYPES.ERROR, { message: error && error.message || '', });
-                });
-        }
-        catch (error) {
-            this.sendResult(command, TYPES.ERROR, { message: error && error.message || '', });
-        }
+    sendRequest = (id, type, args) => {
+        this.sendData(id, type, args, 'args');
     }
 
-    onAddListener = (command) => {
-        try {
-            let [pckg, mdl, eventName] = command.args;
-
-            let handler = (result) => {
-                this.sendResult(command, TYPES.EVENT, result);
-            };
-
-            handler.pckg = pckg;
-            handler.mdl = mdl;
-            handler.eventName = eventName;
-
-            let result = this.props.packages[pckg][mdl].addEventListener(eventName, handler);
-
-            this.webListeners[getListenerHash(pckg, mdl, eventName, command.id)] = handler;
-
-            this.sendResult(command, TYPES.SUCCESS, result);
-        }
-        catch (error) {
-            this.sendResult(command, TYPES.ERROR, { message: error && error.message || '', });
-        }
+    sendResult = (commandId, type, result) => {
+        this.sendData(uuid(), type, result, 'result', commandId);
     }
 
-    onRemoveListener = (command) => {
-        try {
-            let [pckg, mdl, eventName, cbId] = command.args;
+    sendData = (id, type, data, dataField, commandId) => {
+        data = stringify(data);
 
-            let h = getListenerHash(pckg, mdl, eventName, cbId);
-
-            let handler = this.webListeners[h];
-
-            let result = this.props.packages[pckg][mdl].removeEventListener(eventName, handler);
-
-            this.sendResult(command, TYPES.SUCCESS, result);
-
-            delete this.webListeners[h];
-        }
-        catch (error) {
-            this.sendResult(command, TYPES.ERROR, { message: error && error.message || '', });
-        }
-    }
-
-    sendResult = (command, type, result) => {
-        result = stringify(result);
-
-        let id = uuid(),
-            index = 0,
+        let index = 0,
             size = 100000,
-            parts = Math.ceil(result.length / size);
+            parts = Math.ceil(data.length / size);
 
-        while (result) {
+        while (data) {
             this.sendMessage({
-                type,
                 id,
-                commandId: command.id,
-                result: result.substr(0, size),
+                type,
+                commandId,
+                [dataField]: data.substr(0, size),
                 parts,
                 index,
             });
-            result = result.substr(size);
+            data = data.substr(size);
             ++index;
         }
     }
@@ -149,9 +97,19 @@ export class HybroView extends React.Component {
         );
     }
 
-}
 
+    invoker = new Invoker(this.props.packages, this.sendRequest, this.sendResult);
 
-function getListenerHash(pckg, mdl, eventName, id) {
-    return `${pckg}_${mdl}_${eventName}_${id}`;
+    invoke(pckg, mdl, method, params) {
+        return this.invoker.invoke(pckg, mdl, method, params);
+    }
+
+    addEventListener(pckg, mdl, evnt, listener) {
+        return this.invoker.addEventListener(pckg, mdl, evnt, listener);
+    }
+
+    removeEventListener(pckg, mdl, evnt, listener) {
+        return this.invoker.removeEventListener(pckg, mdl, evnt, listener);
+    }
+
 }
